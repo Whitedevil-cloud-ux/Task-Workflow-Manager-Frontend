@@ -17,17 +17,26 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Screenshots
 
+### Signup 
+![screenshot](<img width="853" height="761" alt="image" src="https://github.com/user-attachments/assets/cb1f25c8-27b3-4207-9aff-900f9c8f0706" />
+)
+
 ### Login
-![Login](./public/screenshots/dashboard.png)
+![screenshot](<img width="1385" height="842" alt="image" src="https://github.com/user-attachments/assets/2455f47c-3f97-4d31-81d9-64ebb8d79e1c" />
+)
 
 ### Dashboard
-![Dashboard](./public/screenshots/dashboard.png)
+![screenshot](<img width="1906" height="927" alt="image" src="https://github.com/user-attachments/assets/59d7311a-856a-42f3-aa66-15b4e9fff851" /> <img width="1904" height="912" alt="image" src="https://github.com/user-attachments/assets/79c057a8-6c05-4d24-946a-25292d093795" />
+)
 
 ### Kanban Board
-![Kanban](./public/screenshots/kanban.png)
+![screenshot](<img width="1584" height="888" alt="image" src="https://github.com/user-attachments/assets/a842342c-2083-4267-8cc6-fd70cb4e01ea" />
+)
 
 ### Tasks
-![Tasks](./public/screenshots/tasks.png)
+![screenshot](<img width="1721" height="915" alt="image" src="https://github.com/user-attachments/assets/cb065680-b1f5-42b3-8096-c72067ea7b20" />
+)
 
-
+## Live Demo 
+https://task-workflow-manager-frontend.onrender.com
 
