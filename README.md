@@ -40,3 +40,39 @@ If you are developing a production application, we recommend using TypeScript wi
 ## Live Demo 
 https://task-workflow-manager-frontend.onrender.com
 
+## 📌 How to Use the Application
+
+1. **Sign Up First**
+   - Create a new account using your name, email, and password.
+
+2. **Log In**
+   - After signing up, go to the **Login Page**.
+   - Enter your registered email and password.
+   - On successful login, you will be redirected to the **Dashboard**.
+
+3. **Create Workflow Stages (Important Step)**
+   - Before adding any tasks, first create the following four stages:
+     - **Backlog**
+     - **Todo**
+     - **In Progress**
+     - **Completed**
+
+4. **Add a Task**
+   - Go to the "Create Task" section.
+   - Fill details → choose workflow stage → assign user → save.
+   - After creating tasks, check the **Dashboard**.
+   - You will now see tasks categorized under the correct stages.
+
+5. **Explore Core Features**
+   - **Add Comments** to tasks  
+   - **Create Subtasks** (if enabled)  
+   - **Edit or Delete Tasks**  
+   - **Edit Workflow Stages**  
+   - **Drag and Drop Tasks** between stages  
+   - **Track Activity Logs** on the dashboard  
+   - **Update Profile**  
+   - **Logout**
+
+This ensures you understand the complete flow of the application from signup to full task management.
+
+
