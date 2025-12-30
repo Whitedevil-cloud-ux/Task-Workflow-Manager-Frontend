@@ -5,21 +5,17 @@ import dayjs from "dayjs";
 import { useTaskStore } from "../store/taskStore";
 
 const Tasks = () => {
-  // Zustand store
   const { tasks, loadTasks, addTask, updateTask, removeTask } = useTaskStore();
 
-  // UI state
   const [loadingLocal, setLoadingLocal] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // AI state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPreview, setAiPreview] = useState(null);
 
-  // Create form
   const [createForm, setCreateForm] = useState({
     title: "",
     description: "",
@@ -29,7 +25,6 @@ const Tasks = () => {
     dueDate: "",
   });
 
-  // Edit form
   const [editForm, setEditForm] = useState({
     id: null,
     title: "",
@@ -43,7 +38,6 @@ const Tasks = () => {
   const [users, setUsers] = useState([]);
   const [stages, setStages] = useState([]);
 
-  // -------------------- FETCH INITIAL DATA --------------------
   useEffect(() => {
     const init = async () => {
       setLoadingLocal(true);
@@ -63,18 +57,12 @@ const Tasks = () => {
     setStages(res.data.stages || []);
   };
 
-  // -------------------- FORM HANDLERS --------------------
   const handleCreateChange = (e) => {
     const { name, value } = e.target;
     setCreateForm((s) => ({ ...s, [name]: value }));
   };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((s) => ({ ...s, [name]: value }));
-  };
-
-  // -------------------- AI ENHANCER --------------------
+  // ---------- AI ENHANCER ----------
   const enhanceWithAI = async () => {
     if (!createForm.title) {
       alert("Please enter a title first");
@@ -91,9 +79,8 @@ const Tasks = () => {
       if (res.data.success) {
         setAiPreview(res.data.ai);
       }
-    } catch (err) {
+    } catch {
       alert("AI enhancement failed");
-      console.error(err);
     } finally {
       setAiLoading(false);
     }
@@ -111,10 +98,11 @@ const Tasks = () => {
     setAiPreview(null);
   };
 
-  // -------------------- CREATE TASK --------------------
+  // ---------- CREATE TASK ----------
   const submitCreate = async (e) => {
     e.preventDefault();
     setSaving(true);
+
     try {
       const res = await api.post("/api/tasks", createForm);
       if (res.data.success) {
@@ -137,50 +125,6 @@ const Tasks = () => {
     }
   };
 
-  // -------------------- EDIT TASK --------------------
-  const openEdit = (task) => {
-    setEditForm({
-      id: task._id,
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      assignedTo: task.assignedTo?._id,
-      workflowStage: task.workflowStage?._id,
-      dueDate: task.dueDate ? dayjs(task.dueDate).format("YYYY-MM-DD") : "",
-    });
-    setShowEdit(true);
-  };
-
-  const submitEdit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const { id, ...rest } = editForm;
-      const res = await api.put(`/api/tasks/${id}`, rest);
-      if (res.data.success) {
-        updateTask(res.data.task);
-        setShowEdit(false);
-      }
-    } catch {
-      alert("Failed to update task");
-    }
-    setSaving(false);
-  };
-
-  // -------------------- DELETE TASK --------------------
-  const confirmAndDelete = async (taskId) => {
-    if (!confirm("Are you sure?")) return;
-    setDeleteLoading(true);
-    try {
-      const res = await api.delete(`/api/tasks/${taskId}`);
-      if (res.data.success) removeTask(taskId);
-    } catch {
-      alert("Failed to delete task");
-    }
-    setDeleteLoading(false);
-  };
-
-  // -------------------- RENDER --------------------
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
@@ -201,20 +145,6 @@ const Tasks = () => {
             <div key={task._id} className="bg-white rounded-xl shadow p-5">
               <h2 className="text-xl font-semibold">{task.title}</h2>
               <p className="text-gray-600 mt-2">{task.description}</p>
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  onClick={() => openEdit(task)}
-                  className="px-3 py-1 bg-yellow-400 text-white rounded"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => confirmAndDelete(task._id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded"
-                >
-                  Delete
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -243,6 +173,39 @@ const Tasks = () => {
                 value={createForm.description}
                 onChange={handleCreateChange}
               />
+
+              {/* REQUIRED FIELDS (FIX) */}
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="assignedTo"
+                  className="p-3 border rounded"
+                  value={createForm.assignedTo}
+                  onChange={handleCreateChange}
+                  required
+                >
+                  <option value="">Assign to</option>
+                  {users.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="workflowStage"
+                  className="p-3 border rounded"
+                  value={createForm.workflowStage}
+                  onChange={handleCreateChange}
+                  required
+                >
+                  <option value="">Workflow stage</option>
+                  {stages.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <button
                 type="button"
