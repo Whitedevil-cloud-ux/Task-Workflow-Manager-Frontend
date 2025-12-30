@@ -15,4 +15,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const enhanceTaskWithAI = (payload) => {
+  return api.post("/api/ai/enhance-task", payload);
+};
+
 export default api;
