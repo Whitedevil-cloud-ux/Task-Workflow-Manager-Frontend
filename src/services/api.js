@@ -19,4 +19,7 @@ export const enhanceTaskWithAI = (payload) => {
   return api.post("/api/ai/enhance-task", payload);
 };
 
+export const suggestSubtasksWithAI = (payload) => 
+  api.post("/api/ai/suggest-subtasks", payload);
+
 export default api;

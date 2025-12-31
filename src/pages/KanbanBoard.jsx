@@ -16,14 +16,16 @@ import api from "../services/api";
 import clsx from "clsx";
 import { useTaskStore } from "../store/taskStore";
 
-function SortableTask({ task, isDragging }) {
+/* ---------------- SORTABLE TASK CARD ---------------- */
+function SortableTask({ task, isDragging, onDelete }) {
   return (
     <div
       className={clsx(
-        "bg-gray-50 border rounded p-3 shadow-sm transition-all",
+        "bg-gray-50 border rounded p-3 shadow-sm transition-all space-y-2",
         isDragging ? "scale-105 shadow-md" : ""
       )}
     >
+      {/* HEADER */}
       <div className="flex justify-between items-start">
         <div>
           <h3 className="font-medium">{task.title}</h3>
@@ -31,13 +33,56 @@ function SortableTask({ task, isDragging }) {
             {task.description || "No description"}
           </p>
         </div>
-        <div className="text-xs text-gray-500 ml-3">{task.priority}</div>
+        <span className="text-xs text-gray-500 ml-3">{task.priority}</span>
       </div>
+
+      {/* ACTIONS */}
+      <div className="flex gap-3 text-xs">
+        <button
+          onClick={() => alert("Edit modal coming next")}
+          className="text-blue-600 hover:underline"
+        >
+          Edit
+        </button>
+
+        <button
+          onClick={() => onDelete(task._id)}
+          className="text-red-600 hover:underline"
+        >
+          Delete
+        </button>
+      </div>
+
+      {/* SUBTASKS */}
+      {task.subtasks?.length > 0 && (
+        <div className="border-t pt-2">
+          <p className="text-xs font-semibold text-gray-500 mb-1">
+            Subtasks
+          </p>
+          <ul className="space-y-1">
+            {task.subtasks.map((sub) => (
+              <li key={sub._id} className="flex items-center gap-2 text-xs">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    sub.isDone ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                />
+                <span
+                  className={sub.isDone ? "line-through text-gray-400" : ""}
+                >
+                  {sub.title}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
 
-function TaskItem({ task, containerId }) {
+/* ---------------- DRAGGABLE WRAPPER ---------------- */
+function TaskItem({ task, containerId, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
       id: task._id,
@@ -54,17 +99,20 @@ function TaskItem({ task, containerId }) {
       {...attributes}
       {...listeners}
     >
-      <SortableTask task={task} isDragging={isDragging} />
+      <SortableTask
+        task={task}
+        isDragging={isDragging}
+        onDelete={onDelete}
+      />
     </div>
   );
 }
 
+/* ---------------- MAIN BOARD ---------------- */
 export default function KanbanBoard() {
   const [stages, setStages] = useState([]);
   const { tasks, setTasks, loadTasks } = useTaskStore();
   const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState(null);
-  const [savingId, setSavingId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -72,14 +120,18 @@ export default function KanbanBoard() {
     })
   );
 
+  /* LOAD DATA (IMPORTANT FIX) */
   useEffect(() => {
     loadAll();
-  }, []);
+  }, [loadTasks]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [stRes] = await Promise.all([api.get("/workflow-stages"), loadTasks()]);
+      const [stRes] = await Promise.all([
+        api.get("/workflow-stages"),
+        loadTasks(),
+      ]);
       if (stRes.data?.success) setStages(stRes.data.stages);
     } catch (err) {
       console.error("Load error", err);
@@ -89,7 +141,18 @@ export default function KanbanBoard() {
     }
   };
 
-  // -------------------- COLUMN MAPPING --------------------
+  /* DELETE HANDLER */
+  const handleDelete = async (taskId) => {
+    if (!confirm("Delete this task?")) return;
+    try {
+      await api.delete(`/api/tasks/${taskId}`);
+      await loadTasks(); // 🔥 THIS IS THE KEY
+    } catch {
+      alert("Failed to delete task");
+    }
+  };
+
+  /* COLUMN MAPPING */
   const columns = useMemo(() => {
     const map = {};
     const orderedStages = [...stages].sort(
@@ -121,80 +184,13 @@ export default function KanbanBoard() {
       }));
   }, [stages, columns]);
 
-  // -------------------- DRAG START --------------------
-  function handleDragStart(event) {
-    setActiveId(event.active.id);
-  }
-
-  // -------------------- DRAG END (FIXED VERSION) --------------------
-  async function handleDragEnd(event) {
-    const { active, over } = event;
-    setActiveId(null);
-    if (!over) return;
-
-    const activeId = active.id;
-
-    const from = active.data?.current?.containerId;
-    const to =
-      over.data?.current?.containerId &&
-      over.data.current.containerId !== activeId
-        ? over.data.current.containerId
-        : over.id;
-
-    if (!from || !to || from === to) return;
-
-    try {
-      setSavingId(activeId);
-
-      const fromTasks = [...(columns[from]?.tasks || [])];
-      const toTasks = [...(columns[to]?.tasks || [])];
-
-      const itemIndex = fromTasks.findIndex((t) => t._id === activeId);
-      if (itemIndex === -1) return;
-
-      const [movedTask] = fromTasks.splice(itemIndex, 1);
-      toTasks.push(movedTask);
-
-      const newTaskList = [];
-      Object.values(columns).forEach((col) => {
-        if (col.stage._id === from) newTaskList.push(...fromTasks);
-        else if (col.stage._id === to) newTaskList.push(...toTasks);
-        else newTaskList.push(...col.tasks);
-      });
-
-      const optimistic = newTaskList.map((t) =>
-        t._id === activeId ? { ...t, workflowStage: { _id: to } } : t
-      );
-
-      setTasks(optimistic);
-
-      // Persist change
-      await api.patch(`/api/tasks/${activeId}/status`, {
-        workflowStageId: to,
-      });
-
-      await loadTasks();
-    } catch (err) {
-      console.error("Failed to move task:", err);
-      alert("Failed to move task, reverting.");
-      await loadTasks();
-    } finally {
-      setSavingId(null);
-    }
-  }
-
   if (loading) return <div className="p-8">Loading Kanban...</div>;
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Kanban Board</h1>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {orderedColumns.map((col) => (
             <div
@@ -214,10 +210,7 @@ export default function KanbanBoard() {
                 items={col.tasks.map((t) => t._id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div
-                  className="flex-1 space-y-3 min-h-[120px]"
-                  data-container-id={col.id}   // <— IMPORTANT
-                >
+                <div className="flex-1 space-y-3 min-h-[120px]">
                   {col.tasks.length === 0 && (
                     <div className="text-gray-400 italic text-sm">
                       No tasks yet...
@@ -228,7 +221,8 @@ export default function KanbanBoard() {
                     <TaskItem
                       key={task._id}
                       task={task}
-                      containerId={col.id} // pass container ID properly
+                      containerId={col.id}
+                      onDelete={handleDelete}
                     />
                   ))}
                 </div>
