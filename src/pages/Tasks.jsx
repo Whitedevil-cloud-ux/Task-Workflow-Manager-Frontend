@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import api, {
   enhanceTaskWithAI,
   suggestSubtasksWithAI,
+  getTaskRisk,
+  createTaskFromNLP,
 } from "../services/api";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useTaskStore } from "../store/taskStore";
@@ -39,6 +41,12 @@ const Tasks = () => {
 
   const [users, setUsers] = useState([]);
   const [stages, setStages] = useState([]);
+
+  const [riskModal, setRiskModal] = useState({
+    open: false,
+    loading: false,
+    data: null,
+  });
 
   /* ---------------- INIT ---------------- */
   useEffect(() => {
@@ -113,6 +121,21 @@ const Tasks = () => {
     }
   };
 
+  const openRiskModal = async (taskId) => {
+    setRiskModal({ open: true, loading: true, data: null });
+    try {
+      const res = await getTaskRisk(taskId);
+      setRiskModal({
+        open: true,
+        loading: false,
+        data: res.data.risk,
+      });
+    } catch (error) {
+      console.error("Failed to fetch risk", error);
+      setRiskModal({ open: false, loading: false, data: null });
+    }
+  }
+
   /* ---------------- CREATE ---------------- */
   const submitCreate = async (e) => {
     e.preventDefault();
@@ -165,12 +188,23 @@ const Tasks = () => {
     <DashboardLayout>
       <div className="flex justify-between mb-6">
         <h1 className="text-3xl font-bold">Tasks</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
-        >
-          + Add Task
-        </button>
+        <div className="flex gap-3 items-center">
+          <input placeholder='e.g. "Create a high priority task for John by Friday" '
+            className="w-full mb-4 p-3 border rounded"
+            onKeyDown={async (e) => {
+              if(e.key === "Enter") {
+                const res = await createTaskFromNLP(e.target.value);
+                addTask(res.data.task);
+                e.target.value = "";
+              }
+            }} />
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+          >
+            + Add Task
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -186,6 +220,13 @@ const Tasks = () => {
                 <h2 className="text-xl font-semibold">{task.title}</h2>
                 <p className="text-gray-600">{task.description}</p>
               </div>
+
+              <button
+                onClick={() => openRiskModal(task._id)}
+                className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200"
+              >
+                View Risk
+              </button>
 
               {/* SUBTASKS */}
               {Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
@@ -411,6 +452,64 @@ const Tasks = () => {
           </div>
         </div>
       )}
+
+      {/* RISK MODAL */}
+      {riskModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white w-[420px] p-6 rounded-xl space-y-4">
+            <h2 className="text-lg font-semibold">Task Risk Analysis</h2>
+
+            {riskModal.loading ? (
+              <p>Analyzing risk...</p>
+            ) : (
+              <>
+                <p>
+                  <strong>Risk Level:</strong>{" "}
+                  <span
+                    className={
+                      riskModal.data.level === "High"
+                        ? "text-red-600"
+                        : riskModal.data.level === "Medium"
+                        ? "text-yellow-600"
+                        : "text-green-600"
+                    }
+                  >
+                    {riskModal.data.level}
+                  </span>
+                </p>
+
+                <p className="text-sm text-gray-700">
+                  {riskModal.data.summary}
+                </p>
+
+                <div>
+                  <p className="text-sm font-semibold mb-1">Why?</p>
+                  <ul className="list-disc ml-5 text-sm text-gray-600">
+                    {riskModal.data.reasons.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="bg-indigo-50 p-3 rounded text-sm">
+                  <strong>Suggested Action:</strong>
+                  <p>{riskModal.data.suggestedAction}</p>
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() =>
+                setRiskModal({ open: false, loading: false, data: null })
+              }
+              className="w-full bg-indigo-600 text-white py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 };

@@ -22,4 +22,11 @@ export const enhanceTaskWithAI = (payload) => {
 export const suggestSubtasksWithAI = (payload) => 
   api.post("/api/ai/suggest-subtasks", payload);
 
+export const getTaskRisk = (taskId) => {
+  return api.get(`/api/tasks/${taskId}/risk`);
+};
+
+export const createTaskFromNLP = (text) =>
+  api.post("/api/tasks/nlp", { text }); 
+
 export default api;
